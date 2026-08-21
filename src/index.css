@@ -1,0 +1,1604 @@
+/* ============================================================
+   Hover Health — Ambient Clinical Projection Interface
+   ============================================================
+   Designed for high-lumen laser projection onto matte hospital
+   walls. Research shows the most common hospital wall color is
+   a warm greige/sage — Sherwin-Williams "Accessible Beige"
+   (SW 7036, approx #C5B8A4) or similar warm neutral.
+
+   The projection system renders ON TOP of this wall color.
+   Background tokens therefore use a warm, low-saturation
+   palette to blend with the physical wall rather than fight it.
+   High contrast ≥7:1 is maintained on all interactive elements.
+
+   Target: 3840×2160 (4K UHD), 16:9
+   Effective viewing: 1.5–3.5m
+   ============================================================ */
+
+/* --- Google Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ============================================================
+   1. Design Tokens — Warm Ambient Clinical Palette
+   ============================================================ */
+:root {
+  /* --- Ambient Wall Surface Palette ---
+     Warm greige hospital wall simulation.
+     Accessible Beige (SW 7036): HSL(36, 18%, 76%)
+     Projection panels use warm translucent overlays on this.
+  */
+  --wall-base:         #C8BFB0;   /* Sherwin-Williams Accessible Beige – wall sim */
+  --surface-base:      #1A1C1E;   /* Deep warm charcoal — unprojected areas */
+  --surface-panel:     rgba(26, 22, 18, 0.82);  /* Warm dark glass panels */
+  --surface-card:      rgba(32, 27, 22, 0.90);  /* Card backgrounds */
+  --surface-elevated:  rgba(44, 38, 30, 0.95);  /* Elevated surfaces */
+  --surface-border:    rgba(255, 235, 200, 0.15); /* Warm border tint */
+  --surface-border-subtle: rgba(255, 235, 200, 0.07);
+
+  /* --- Text ---
+     Warm off-white rather than cold blue-white
+  */
+  --text-primary:      #F5EFE6;   /* Warm off-white */
+  --text-secondary:    #B8AA98;   /* Warm mid-tone */
+  --text-dim:          #7A6E62;   /* Warm muted */
+
+  /* --- Clinical Brand & Interaction ---
+     Medical teal-blue: calming, professional, high contrast on warm backgrounds
+  */
+  --brand-interactive:       #3EC9C0;   /* Teal — primary interactive */
+  --brand-interactive-deep:  #1BA8A0;
+  --brand-accent:            #F0C96A;   /* Warm amber — secondary accent */
+
+  /* --- Semantic Status ---
+     Kept vivid for safety-critical legibility
+  */
+  --status-emergency:  #FF5B5B;
+  --status-warning:    #F5A623;
+  --status-success:    #4CD9A0;
+  --gesture-reticle:   #3EC9C0;
+
+  /* --- Glow (warm-shifted) --- */
+  --glow-interactive:  rgba(62, 201, 192, 0.22);
+  --glow-success:      rgba(76, 217, 160, 0.22);
+  --glow-warning:      rgba(245, 166, 35, 0.22);
+  --glow-emergency:    rgba(255, 91, 91, 0.22);
+
+  /* --- DAX Balloon --- */
+  --dax-bg:            rgba(240, 201, 106, 0.12);
+  --dax-border:        rgba(240, 201, 106, 0.4);
+  --dax-text:          #F0C96A;
+
+  /* --- Typography --- */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --tnum: "tnum" 1;
+
+  /* --- Spatial Layout --- */
+  --gutter:            32px;
+  --safety-margin:     48px;
+  --identity-bar-h:    80px;
+  --footer-h:          88px;
+
+  /* --- Gesture Targets --- */
+  --min-target:        96px;
+  --btn-w:             280px;
+  --btn-h:             110px;
+  --btn-radius:        16px;
+  --target-gap:        24px;
+
+  /* --- Dwell Animation --- */
+  --dwell-duration:          600ms;
+  --dwell-confirm-duration:  1200ms;
+  --dwell-easing:            cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Pillbox Pop-in --- */
+  --pillbox-in-duration:     380ms;
+  --pillbox-out-duration:    250ms;
+}
+
+/* ============================================================
+   2. Global Reset & Body
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  /* Warm greige projection background — matches hospital wall color */
+  background: linear-gradient(160deg, #C2B8A8 0%, #BEB3A3 40%, #B8AD9E 100%);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-feature-settings: var(--tnum);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  line-height: 1.4;
+  cursor: none; /* Hover OS reticle replaces system cursor */
+}
+
+/* ============================================================
+   3. Typography Scale
+   ============================================================ */
+.type-display-hero {
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 80px;
+  letter-spacing: -0.02em;
+}
+
+.type-h1, h1 {
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 48px;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+
+.type-h2, h2 {
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 36px;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.type-body-lg, p, span, label, div {
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 30px;
+}
+
+.type-body-sm {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 26px;
+  color: var(--text-secondary);
+}
+
+.type-mono {
+  font-family: 'Consolas', monospace;
+  font-feature-settings: var(--tnum);
+}
+
+/* ============================================================
+   4. App Container — Fixed 4-Zone Layout (No Scroll)
+   ============================================================ */
+.app-container {
+  display: grid;
+  grid-template-rows: var(--identity-bar-h) 1fr var(--footer-h);
+  grid-template-columns: 22% 56% 22%;
+  grid-template-areas:
+    "identity identity identity"
+    "context  canvas   action"
+    "footer   footer   footer";
+  height: 100vh;
+  width: 100vw;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* ============================================================
+   5. ZONE A — Persistent Patient Identity Bar
+   ============================================================ */
+.app-header {
+  grid-area: identity;
+  background: var(--surface-panel);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: var(--identity-bar-h);
+  z-index: 50;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(62, 201, 192, 0.2), rgba(62, 201, 192, 0.1));
+  border: 1.5px solid var(--brand-interactive);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--brand-interactive);
+  flex-shrink: 0;
+}
+
+.brand-title {
+  font-size: 26px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--text-primary) 40%, var(--brand-interactive));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+.system-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--surface-border);
+  padding: 8px 18px;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-height: 44px;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.status-indicator.active {
+  background: var(--status-warning);
+  box-shadow: 0 0 10px var(--glow-warning);
+  animation: pulse-glow 2s infinite;
+}
+
+.status-indicator.success {
+  background: var(--status-success);
+  box-shadow: 0 0 10px var(--glow-success);
+}
+
+/* Mode Toggle */
+.mode-toggle {
+  display: flex;
+  border-radius: 14px;
+  border: 1.5px solid var(--surface-border);
+  background: rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.mode-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: none;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  min-width: 90px;
+}
+
+.mode-toggle-btn.active {
+  background: rgba(62, 201, 192, 0.15);
+  color: var(--brand-interactive);
+}
+
+.mode-toggle-btn:hover:not(.active) {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  outline: 1.5px solid var(--brand-interactive);
+  outline-offset: -1.5px;
+}
+
+/* ============================================================
+   6. ZONE B — EHR Context Rail (Left 22%)
+   ============================================================ */
+.border-dock {
+  grid-area: context;
+  background: var(--surface-panel);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 14px;
+  gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 10;
+}
+
+.border-dock::-webkit-scrollbar { width: 4px; }
+.border-dock::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.dock-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--brand-interactive);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.static-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--surface-border-subtle);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.patient-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.patient-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(62, 201, 192, 0.15), rgba(62, 201, 192, 0.08));
+  border: 1.5px solid rgba(62, 201, 192, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-interactive);
+  flex-shrink: 0;
+}
+
+.patient-primary-info h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 24px;
+}
+
+.patient-mrn {
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+  color: var(--text-secondary);
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.meta-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.meta-value.flagged { color: var(--status-warning); }
+
+/* Badges */
+.static-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dock-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--surface-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dock-badge.allergy {
+  background: rgba(255, 91, 91, 0.1);
+  border-color: rgba(255, 91, 91, 0.3);
+  color: #FCA5A5;
+}
+
+.dock-badge.nkda {
+  background: rgba(76, 217, 160, 0.1);
+  border-color: rgba(76, 217, 160, 0.3);
+  color: #6EE7B7;
+}
+
+/* Order Items in Dock */
+.dock-order-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 3px solid var(--status-warning);
+  font-size: 12px;
+  min-height: 44px;
+}
+
+.dock-order-item strong { font-size: 13px; color: var(--text-primary); }
+.dock-order-item div { font-size: 11px; }
+
+.dock-order-item.signed,
+.dock-order-item.completed { border-left-color: var(--status-success); }
+.dock-order-item.cancelled { border-left-color: var(--status-emergency); }
+
+/* Lab Trend Table */
+.mini-lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mini-lab-table th {
+  color: var(--text-dim);
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--surface-border-subtle);
+  font-weight: 600;
+  font-size: 11px;
+}
+.mini-lab-table td {
+  padding: 5px 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+/* ============================================================
+   7. ZONE C — Dynamic Focus Canvas (No scroll — single viewport)
+   ============================================================ */
+.main-stage {
+  grid-area: canvas;
+  padding: 16px 20px;
+  overflow: hidden;           /* Never scrolls — content must fit */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  gap: 0;
+}
+
+.stage-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stage-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 40px;
+}
+
+.stage-subtitle {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   8. ACTIVE PILLBOX — Single Focused Action Card
+   ============================================================
+   One card fills the canvas. Pop-in animation when it arrives.
+   Auto-commits to action list when next card arrives.
+   ============================================================ */
+.pillbox-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Active pillbox — the CURRENT action needing confirmation */
+.pillbox-card {
+  background: var(--surface-card);
+  border: 1.5px solid rgba(62, 201, 192, 0.3);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all var(--pillbox-out-duration) ease;
+  flex-shrink: 0;
+}
+
+/* Pop-in animation when pillbox appears */
+.pillbox-card.pending {
+  border-color: rgba(62, 201, 192, 0.45);
+  box-shadow:
+    0 0 40px rgba(62, 201, 192, 0.12),
+    0 8px 32px rgba(0,0,0,0.35);
+  animation: pillbox-pop-in var(--pillbox-in-duration) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Resolved state — shrinks to action list row */
+.pillbox-card.resolved {
+  opacity: 0.55;
+  border-color: var(--surface-border-subtle);
+  padding: 10px 16px;
+  animation: none;
+}
+
+.pillbox-card.resolved .pillbox-group {
+  display: none;
+}
+
+.pillbox-card.resolved .pillbox-card-source {
+  display: none;
+}
+
+.pillbox-card.dismissed {
+  opacity: 0.3;
+}
+
+.pillbox-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pillbox-card-title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pillbox-card-intent-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--brand-interactive);
+  background: rgba(62, 201, 192, 0.1);
+  padding: 3px 10px;
+  border-radius: 5px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.pillbox-card-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 34px;
+}
+
+.pillbox-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* Confidence Meter */
+.pillbox-card-confidence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confidence-bar {
+  width: 80px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.confidence-label {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Consolas', monospace;
+}
+
+.pillbox-card-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 9999px;
+}
+
+.pillbox-card-status.confirmed {
+  color: var(--status-success);
+  background: rgba(76, 217, 160, 0.12);
+}
+
+.pillbox-card-status.dismissed {
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pillbox-card-description {
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 24px;
+}
+
+.pillbox-card-source {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 14px;
+  border-radius: 8px;
+  border-left: 3px solid rgba(62, 201, 192, 0.3);
+}
+
+.source-label {
+  color: var(--text-dim);
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.source-text {
+  color: var(--text-secondary);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.pillbox-card-resolved-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--status-success);
+  padding: 8px 14px;
+  background: rgba(76, 217, 160, 0.08);
+  border-radius: 8px;
+}
+
+.pillbox-card-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: transparent;
+  border: 1.5px solid var(--surface-border);
+  border-radius: 10px;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: none;
+  transition: all 0.2s ease;
+  align-self: center;
+  font-family: var(--font-sans);
+  min-height: 44px;
+  min-width: 160px;
+}
+
+.pillbox-card-dismiss:hover {
+  border-color: var(--status-emergency);
+  color: var(--status-emergency);
+  background: rgba(255, 91, 91, 0.07);
+  box-shadow: 0 0 12px var(--glow-emergency);
+}
+
+/* ============================================================
+   9. Large Pillbox — Gesture Action Buttons within a Card
+   ============================================================ */
+.pillbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.large-pillbox {
+  width: 100%;
+  min-height: 64px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid var(--surface-border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: none;
+  text-align: left;
+  transition: all 0.18s var(--dwell-easing);
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.large-pillbox:hover {
+  background: rgba(62, 201, 192, 0.1);
+  border-color: var(--brand-interactive);
+  box-shadow: 0 0 20px var(--glow-interactive);
+  transform: scale(1.005);
+}
+
+.large-pillbox:active {
+  transform: scale(0.97);
+  transition: transform 100ms ease;
+}
+
+.large-pillbox:disabled {
+  opacity: 0.3;
+  cursor: default;
+  transform: none;
+}
+
+.large-pillbox.committed {
+  border-color: var(--status-success);
+  background: linear-gradient(135deg, rgba(76, 217, 160, 0.1) 0%, transparent 100%);
+  box-shadow: 0 0 16px var(--glow-success);
+}
+
+.large-pillbox.committed .pillbox-icon-container {
+  background: var(--status-success);
+  color: var(--surface-base);
+  border-color: var(--status-success);
+}
+
+.large-pillbox.warning {
+  border-color: rgba(245, 166, 35, 0.35);
+}
+.large-pillbox.warning:hover {
+  border-color: var(--status-warning);
+  box-shadow: 0 0 20px var(--glow-warning);
+}
+
+.large-pillbox.danger {
+  border-color: rgba(255, 91, 91, 0.35);
+}
+.large-pillbox.danger:hover {
+  border-color: var(--status-emergency);
+  box-shadow: 0 0 20px var(--glow-emergency);
+}
+
+.large-pillbox.danger.committed {
+  border-color: var(--status-emergency);
+  background: linear-gradient(135deg, rgba(255, 91, 91, 0.1) 0%, transparent 100%);
+}
+
+/* Pillbox Icon Circle */
+.pillbox-icon-container {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(62, 201, 192, 0.1);
+  border: 1.5px solid rgba(62, 201, 192, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-interactive);
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.large-pillbox:hover .pillbox-icon-container {
+  background: var(--brand-interactive);
+  color: var(--surface-base);
+  border-color: var(--brand-interactive);
+  box-shadow: 0 0 12px var(--glow-interactive);
+}
+
+.large-pillbox.warning .pillbox-icon-container {
+  background: rgba(245, 166, 35, 0.1);
+  border-color: rgba(245, 166, 35, 0.3);
+  color: var(--status-warning);
+}
+.large-pillbox.warning:hover .pillbox-icon-container {
+  background: var(--status-warning);
+  color: var(--surface-base);
+}
+
+.large-pillbox.danger .pillbox-icon-container {
+  background: rgba(255, 91, 91, 0.1);
+  border-color: rgba(255, 91, 91, 0.3);
+  color: var(--status-emergency);
+}
+.large-pillbox.danger:hover .pillbox-icon-container {
+  background: var(--status-emergency);
+  color: #ffffff;
+}
+
+/* Pillbox Content Stack */
+.pillbox-content-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pillbox-primary-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 22px;
+}
+
+.pillbox-subtext {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Pillbox Status Tag */
+.pillbox-status-tag {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid var(--surface-border);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.pillbox-status-tag.recommended {
+  background: rgba(62, 201, 192, 0.12);
+  border-color: var(--brand-interactive);
+  color: var(--brand-interactive);
+}
+
+.pillbox-status-tag.committed {
+  background: rgba(76, 217, 160, 0.12);
+  border-color: var(--status-success);
+  color: var(--status-success);
+}
+
+/* ============================================================
+   10. Action History List — Below Active Pillbox
+   ============================================================
+   Shows completed/pending items in a compact list.
+   Only the current active pillbox is full-size.
+   ============================================================ */
+.action-history {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.action-history-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  padding: 0 4px;
+  margin-bottom: 2px;
+}
+
+.action-history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  border-left: 3px solid var(--status-success);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  animation: slide-in-left 0.22s ease-out;
+}
+
+.action-history-item.dismissed {
+  border-left-color: var(--text-dim);
+  opacity: 0.6;
+}
+
+.action-history-item.pending {
+  border-left-color: var(--status-warning);
+}
+
+/* ============================================================
+   11. DAX Says Balloon
+   ============================================================
+   Replaces spoken DAX voice. Appears as a speech balloon
+   overlaid on the canvas — unobtrusive, readable, auto-hides.
+   ============================================================ */
+.dax-balloon {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  max-width: 380px;
+  background: var(--dax-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid var(--dax-border);
+  border-radius: 14px 14px 4px 14px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: dax-pop-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.dax-balloon-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--brand-accent);
+  opacity: 0.8;
+}
+
+.dax-balloon-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dax-text);
+  line-height: 20px;
+}
+
+/* Tail triangle pointing down-right */
+.dax-balloon::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  right: 18px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 0px solid transparent;
+  border-top: 8px solid var(--dax-border);
+}
+
+/* ============================================================
+   12. Pillbox Feed — Empty & Listening States
+   ============================================================ */
+.pillbox-feed-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 24px;
+  text-align: center;
+  flex: 1;
+}
+
+.listening-indicator {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(62, 201, 192, 0.05);
+  border: 2px solid rgba(62, 201, 192, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  transition: all 0.3s ease;
+}
+
+.listening-indicator.active {
+  color: var(--brand-interactive);
+  border-color: var(--brand-interactive);
+  background: rgba(62, 201, 192, 0.08);
+  animation: radar-pulse 2s infinite ease-out;
+}
+
+.feed-empty-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 32px;
+}
+
+.feed-empty-subtitle {
+  font-size: 16px;
+  color: var(--text-secondary);
+  max-width: 480px;
+  line-height: 24px;
+}
+
+/* Feed divider (resolved section header) */
+.feed-resolved-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.feed-resolved-divider::before,
+.feed-resolved-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--surface-border-subtle);
+}
+
+.feed-resolved-divider span {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   13. Patient Selector Grid
+   ============================================================ */
+.patient-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+}
+
+.patient-selector-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.patient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.patient-grid-card {
+  background: var(--surface-card);
+  border: 1.5px solid var(--surface-border);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: none;
+  text-align: left;
+  transition: all 0.18s var(--dwell-easing);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  min-height: 140px;
+}
+
+.patient-grid-card:hover {
+  background: var(--surface-elevated);
+  border-color: var(--brand-interactive);
+  box-shadow: 0 0 20px var(--glow-interactive);
+}
+
+.patient-grid-card:active {
+  transform: scale(0.97);
+  transition: transform 100ms ease;
+}
+
+.patient-grid-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(62, 201, 192, 0.12), rgba(62, 201, 192, 0.06));
+  border: 1.5px solid rgba(62, 201, 192, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-interactive);
+}
+
+.patient-grid-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 28px;
+}
+
+.patient-grid-meta {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.patient-grid-scenario {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-interactive);
+  background: rgba(62, 201, 192, 0.07);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(62, 201, 192, 0.18);
+  width: fit-content;
+}
+
+.patient-selector-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 60px;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid rgba(62, 201, 192, 0.15);
+  border-top-color: var(--brand-interactive);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   14. Footer — Audio & Voice Controls
+   ============================================================ */
+.app-footer {
+  grid-area: footer;
+  background: var(--surface-panel);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  padding: 8px 20px;
+  gap: 6px;
+  z-index: 50;
+}
+
+.footer-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-play-round {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-interactive), var(--brand-interactive-deep));
+  border: none;
+  color: var(--surface-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: none;
+  box-shadow: 0 0 16px var(--glow-interactive);
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.btn-play-round:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 26px var(--glow-interactive);
+}
+
+.btn-play-round:active { transform: scale(0.97); transition: transform 100ms ease; }
+
+.btn-play-round:disabled {
+  opacity: 0.3;
+  cursor: default;
+  transform: none;
+}
+
+.btn-play-round.listening-active {
+  background: linear-gradient(135deg, var(--status-emergency), #DC2626);
+  box-shadow: 0 0 16px var(--glow-emergency);
+  animation: pulse-glow 1.5s infinite;
+}
+
+.waveform-canvas-box {
+  flex-shrink: 0;
+  height: 38px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--surface-border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.waveform-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.subtitle-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(62, 201, 192, 0.04);
+  border: 1px solid rgba(62, 201, 192, 0.12);
+  padding: 7px 14px;
+  border-radius: 9px;
+  font-size: 15px;
+  overflow: hidden;
+  min-height: 44px;
+  flex: 1;
+}
+
+.speaker-pill {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brand-interactive);
+  background: rgba(62, 201, 192, 0.12);
+  padding: 3px 10px;
+  border-radius: 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Patient speaker pill — warm feminine tone */
+.speaker-pill.patient {
+  color: var(--brand-accent);
+  background: rgba(240, 201, 106, 0.12);
+}
+
+.timeline-progress-track {
+  height: 6px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
+  position: relative;
+  cursor: none;
+  overflow: hidden;
+}
+
+.timeline-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand-interactive), var(--status-success));
+  border-radius: 9999px;
+  transition: width 0.1s linear;
+}
+
+/* TTS toggle button */
+.dock-audit-btn {
+  background: rgba(62, 201, 192, 0.08);
+  border: 1.5px solid rgba(62, 201, 192, 0.25);
+  color: var(--brand-interactive);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 9px;
+  cursor: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s ease;
+  font-family: var(--font-sans);
+  min-height: 44px;
+}
+
+.dock-audit-btn:hover {
+  background: rgba(62, 201, 192, 0.15);
+  outline: 1.5px solid var(--brand-interactive);
+}
+
+/* ============================================================
+   15. Gesture Reticle — Custom Spatial Cursor
+   ============================================================ */
+.gesture-reticle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: width 0.15s ease, height 0.15s ease, opacity 0.15s ease;
+}
+
+.gesture-reticle-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gesture-reticle);
+  opacity: 0.55;
+  transition: all 0.15s ease;
+}
+
+.gesture-reticle.snapped .gesture-reticle-dot {
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 2.5px solid var(--gesture-reticle);
+  opacity: 1;
+  box-shadow: 0 0 10px rgba(62, 201, 192, 0.4);
+}
+
+.dwell-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+}
+
+.dwell-ring circle {
+  fill: none;
+  stroke: var(--gesture-reticle);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  transition: stroke-dashoffset var(--dwell-duration) var(--dwell-easing);
+}
+
+.gesture-reticle.dwelling .dwell-ring circle {
+  stroke-dashoffset: 0;
+}
+
+/* ============================================================
+   16. Dwell-Confirm Destructive Action Button
+   ============================================================ */
+.dwell-confirm-btn {
+  width: 280px;
+  height: 96px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--brand-interactive), var(--brand-interactive-deep));
+  border: none;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: none;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px var(--glow-interactive);
+  transition: all 0.18s ease;
+}
+
+.dwell-confirm-btn:hover { box-shadow: 0 8px 32px var(--glow-interactive); }
+.dwell-confirm-btn:active { transform: scale(0.97); }
+
+.dwell-confirm-btn::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 20px;
+  border: 3px solid transparent;
+  transition: border-color var(--dwell-confirm-duration) var(--dwell-easing);
+}
+
+.dwell-confirm-btn.dwelling::before { border-color: var(--status-success); }
+
+.dwell-confirm-btn .dwell-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 5px;
+  width: 0%;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 0 0 16px 16px;
+  transition: width var(--dwell-confirm-duration) var(--dwell-easing);
+}
+
+.dwell-confirm-btn.dwelling .dwell-progress { width: 100%; }
+
+/* ============================================================
+   17. Animations
+   ============================================================ */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Pillbox pop-in: scale from 0.88, translate up slightly */
+@keyframes pillbox-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(16px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes dax-pop-in {
+  from { opacity: 0; transform: scale(0.9) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+@keyframes radar-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(62, 201, 192, 0.5); }
+  70%  { box-shadow: 0 0 0 24px rgba(62, 201, 192, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(62, 201, 192, 0); }
+}
+
+/* ============================================================
+   18. Responsive Fallback (Non-4K screens)
+   ============================================================ */
+@media (max-width: 1919px) {
+  :root {
+    --safety-margin:   12px;
+    --gutter:          12px;
+    --identity-bar-h:  64px;
+    --footer-h:        72px;
+    --min-target:      48px;
+    --btn-h:           64px;
+    --target-gap:      10px;
+  }
+
+  .type-display-hero { font-size: 40px; line-height: 48px; }
+  .type-h1, h1 { font-size: 22px; line-height: 30px; }
+  .type-h2, h2 { font-size: 18px; line-height: 24px; }
+  .type-body-lg, p, span, label, div { font-size: 13px; line-height: 20px; }
+  .type-body-sm { font-size: 12px; line-height: 17px; }
+
+  .brand-icon-box { width: 34px; height: 34px; font-size: 17px; }
+  .brand-title { font-size: 18px; }
+  .status-badge { font-size: 12px; padding: 6px 12px; min-height: 36px; }
+
+  .mode-toggle-btn { font-size: 12px; padding: 7px 16px; min-height: 36px; min-width: 70px; }
+
+  .dock-section-title { font-size: 10px; }
+  .dock-badge { font-size: 11px; padding: 4px 8px; }
+  .dock-order-item { padding: 6px 10px; min-height: 36px; }
+  .dock-order-item strong { font-size: 12px; }
+  .dock-order-item div { font-size: 11px; }
+
+  .patient-avatar { width: 36px; height: 36px; }
+  .patient-primary-info h3 { font-size: 16px; line-height: 22px; }
+  .patient-mrn { font-size: 11px; }
+  .meta-label { font-size: 9px; }
+  .meta-value { font-size: 12px; }
+
+  .mini-lab-table th { font-size: 10px; }
+  .mini-lab-table td { font-size: 12px; }
+
+  .stage-title { font-size: 22px; line-height: 30px; }
+  .stage-subtitle { font-size: 13px; }
+
+  /* Active pillbox card */
+  .pillbox-card { padding: 14px 18px; gap: 10px; border-radius: 12px; }
+  .pillbox-card-intent-tag { font-size: 10px; }
+  .pillbox-card-title { font-size: 18px; line-height: 24px; }
+  .pillbox-card-description { font-size: 13px; }
+  .pillbox-card-source { font-size: 11px; padding: 6px 10px; }
+  .source-label { font-size: 11px; }
+  .source-text { font-size: 11px; }
+  .pillbox-card-resolved-summary { font-size: 12px; padding: 6px 10px; }
+  .pillbox-card-dismiss { font-size: 12px; padding: 7px 16px; min-height: 40px; min-width: 120px; }
+  .confidence-bar { width: 60px; height: 6px; }
+  .confidence-label { font-size: 12px; }
+  .pillbox-card-status { font-size: 11px; }
+
+  /* Action buttons */
+  .large-pillbox { min-height: 56px; padding: 10px 16px; gap: 12px; border-radius: 10px; }
+  .pillbox-icon-container { width: 38px; height: 38px; }
+  .pillbox-primary-label { font-size: 14px; line-height: 20px; }
+  .pillbox-subtext { font-size: 12px; line-height: 17px; }
+  .pillbox-status-tag { font-size: 11px; padding: 4px 12px; min-height: 30px; }
+
+  /* Patient grid */
+  .patient-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .patient-grid-card { padding: 14px; min-height: 110px; gap: 8px; }
+  .patient-grid-avatar { width: 36px; height: 36px; }
+  .patient-grid-name { font-size: 16px; line-height: 22px; }
+  .patient-grid-meta { font-size: 12px; }
+  .patient-grid-scenario { font-size: 11px; padding: 4px 10px; }
+
+  /* Empty state */
+  .pillbox-feed-empty { padding: 30px 16px; gap: 12px; }
+  .listening-indicator { width: 56px; height: 56px; }
+  .feed-empty-title { font-size: 18px; line-height: 24px; }
+  .feed-empty-subtitle { font-size: 13px; }
+  .feed-resolved-divider span { font-size: 10px; }
+
+  /* Footer */
+  .btn-play-round { width: 44px; height: 44px; }
+  .subtitle-banner { font-size: 12px; padding: 5px 10px; min-height: 36px; }
+  .speaker-pill { font-size: 10px; padding: 2px 8px; }
+  .timeline-progress-track { height: 5px; }
+
+  .dwell-confirm-btn { width: 200px; height: 68px; font-size: 16px; }
+
+  .border-dock { padding: 10px 10px; gap: 8px; }
+  .static-card { padding: 10px 12px; gap: 6px; border-radius: 10px; }
+  .meta-grid { padding: 8px; gap: 4px; }
+
+  /* DAX balloon */
+  .dax-balloon { max-width: 280px; padding: 8px 12px; }
+  .dax-balloon-label { font-size: 9px; }
+  .dax-balloon-text { font-size: 12px; line-height: 17px; }
+
+  /* Action history */
+  .action-history-item { font-size: 11px; padding: 5px 10px; }
+  .action-history-title { font-size: 9px; }
+}
